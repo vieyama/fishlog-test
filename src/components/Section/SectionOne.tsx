@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Box,
   Container,
@@ -5,14 +6,24 @@ import {
   Image,
   Text,
   VStack,
+  useMediaQuery,
 } from "@chakra-ui/react";
-import React from "react";
 
 const SectionOne = () => {
+  const [isLargerThan1000] = useMediaQuery("(min-width: 1000px)", {
+    ssr: true,
+    fallback: false, // return false on the server, and re-evaluate on the client side
+  });
+
   return (
     <Box bg="rgb(227, 231, 237)" color="black">
       <Container maxW="77vw" w="77vw">
-        <Flex alignItems="flex-start" p="70px 0px" columnGap={10}>
+        <Flex
+          direction={isLargerThan1000 ? "row" : "column"}
+          alignItems="flex-start"
+          p="70px 0px"
+          columnGap={10}
+        >
           <Image
             src="/assets/rounded.svg"
             alt="fishlog earth"
