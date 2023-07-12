@@ -18,7 +18,7 @@ const LayoutComponent: React.FC<ILayoutComponent> = ({ children }) => {
       </Head>
       <Box>
         <Header />
-        {children}
+        <Box>{children}</Box>
         <Footer />
       </Box>
     </>

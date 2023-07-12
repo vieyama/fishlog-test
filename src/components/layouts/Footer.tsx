@@ -9,13 +9,24 @@ import {
   SimpleGrid,
   Text,
   VStack,
+  useMediaQuery,
 } from "@chakra-ui/react";
 import React from "react";
 
 const Footer = () => {
+  const [isLargerThan911] = useMediaQuery("(min-width: 911px)", {
+    ssr: true,
+    fallback: false, // return false on the server, and re-evaluate on the client side
+  });
+
+  const [isLargerThan735] = useMediaQuery("(min-width: 735px)", {
+    ssr: true,
+    fallback: false, // return false on the server, and re-evaluate on the client side
+  });
+
   return (
-    <Box pos="fixed" bottom={0} bg={primaryColor} p="70px" w="100%">
-      <SimpleGrid columns={2} spacing={10}>
+    <Box bottom={0} bg={primaryColor} p="70px" w="100%">
+      <SimpleGrid columns={isLargerThan735 ? 2 : 1} spacing={10}>
         <Box>
           <Text fontSize="2.125rem" lineHeight={10} fontWeight="extrabold">
             Join us and be a part of building the fisheries ecosystem in
@@ -54,7 +65,7 @@ const Footer = () => {
           </Text>
         </Box>
         <Box>
-          <SimpleGrid columns={3} spacing={10}>
+          <SimpleGrid columns={isLargerThan911 ? 3 : 2} spacing={10}>
             <Box>
               <Text fontWeight="extrabold" mb={2}>
                 Partnership
