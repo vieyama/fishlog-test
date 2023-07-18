@@ -1,231 +1,116 @@
 import LayoutComponent from "@/components/layouts";
-import { CakesResponse, DataCake } from "@/interfaces/cakes";
-import { CounterState, setCakeList } from "@/redux/cakeStore";
-import { CakeState } from "@/redux/store";
-import { addCake, deleteCake, getCake } from "@/services/cakeService";
-import {
-  Badge,
-  Box,
-  Button,
-  Center,
-  Circle,
-  Flex,
-  Icon,
-  Image,
-  Input,
-  Modal,
-  ModalBody,
-  ModalCloseButton,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  ModalOverlay,
-  NumberInput,
-  NumberInputField,
-  Text,
-  Textarea,
-  Tooltip,
-  useColorModeValue,
-  useDisclosure,
-  useToast,
-} from "@chakra-ui/react";
+import { useGetBreed } from "@/hooks/useGetBreeds";
+import { getCats } from "@/services/catsService";
+import { Box, Button, Center, Image, Select, useToast } from "@chakra-ui/react";
 import React, { useEffect, useState } from "react";
-import { BsStar, BsStarFill, BsStarHalf } from "react-icons/bs";
-import { FiShoppingCart } from "react-icons/fi";
-import { useDispatch, useSelector } from "react-redux";
+import InfiniteScroll from "react-infinite-scroll-component";
 
 const Home = () => {
-  const { cakeList } = useSelector((state: CakeState) => state?.cake);
   const toast = useToast();
-  const dispatch = useDispatch();
 
-  const [needFetch, setNeedFetch] = useState(false);
-  const [data, setData] = useState([]);
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    totalPage: 1,
-  });
+  const { data } = useGetBreed();
 
-  useEffect(() => {
-    if (cakeList) {
-      setNeedFetch(cakeList.current_page === 0);
-    }
-  }, [cakeList, needFetch]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [breedId, setBreedId] = useState("");
 
-  console.log(cakeList.items);
+  const [dataCats, setDataCats] = useState<{ id: string; url: string }[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const getCakeData = async () => {
-    await getCake({ page: cakeList.current_page }).then((res) => {
-      console.log(res);
-      const save = {
-        current_page:
-          cakeList.current_page === 0
-            ? res.current_page
-            : cakeList.current_page + 1,
-        total_page: res.total_page,
-        items:
-          cakeList.items.length === 0
-            ? res.items
-            : [...cakeList.items, ...res.items],
-      };
-      dispatch(setCakeList(save));
-    });
+  const getData = async () => {
+    setIsLoading(true);
+    await getCats({
+      page: page,
+      breed_ids: breedId,
+      limit: 10,
+    })
+      .then((res) => {
+        setDataCats((prev) => [...prev, ...res]);
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        setIsLoading(false);
+      });
+  };
+
+  const handleChangeBreed = (e: { target: { value: string } }) => {
+    setBreedId(e.target.value);
+    setPage(1);
+    setDataCats([]);
   };
 
   useEffect(() => {
-    cakeList.current_page === 0 && getCakeData();
-  }, [cakeList.current_page]);
+    breedId.length > 0 && getData();
+  }, [breedId]);
 
-  const handleLoadMore = () => {
-    if (cakeList.current_page <= cakeList.total_page) {
-      getCakeData();
-    }
+  useEffect(() => {
+    page > 1 && getData();
+  }, [page]);
+
+  const getMoreCats = async () => {
+    setPage((prev) => prev + 1);
   };
-
-  const handleDelete = async (id: string) => {
-    await deleteCake(Number(id)).then((res) => {
-      const dataIndex = cakeList.items.findIndex((e) => e.id === id);
-      const currentData = [...cakeList.items];
-      currentData.splice(dataIndex, 1);
-      dispatch(setCakeList({ ...cakeList, items: currentData }));
-      toast({
-        title: "Item deleted",
-        status: "success",
-        duration: 2000,
-        isClosable: true,
-        position: "top-right",
-      });
-    });
-  };
-
-  const handleSave = async () => {
-    await addCake().then(() => {
-      getCakeData();
-      toast({
-        title: "Item Added",
-        status: "success",
-        duration: 2000,
-        isClosable: true,
-        position: "top-right",
-      });
-    });
-  };
-
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const cardBg = useColorModeValue("white", "gray.800");
 
   return (
     <LayoutComponent>
       <Center>
-        <Button onClick={onOpen}>Add Cake</Button>
-      </Center>
-      <Flex
-        wrap="wrap"
-        p={50}
-        w="full"
-        columnGap={15}
-        rowGap={15}
-        alignItems="center"
-        justifyContent="center"
-      >
-        {cakeList.items?.map((cake, key) => (
-          <Box
-            key={key}
-            bg={cardBg}
-            maxW="sm"
-            borderWidth="1px"
-            rounded="lg"
-            shadow="lg"
-            position="relative"
-            width={300}
-            height={350}
-          >
-            <Image
-              src={cake.image}
-              alt={`Picture of ${cake.title}`}
-              roundedTop="lg"
-              width="100%"
-              height="200px"
-              objectFit="cover"
-            />
-
-            <Box p="6">
-              <Box display="flex" alignItems="baseline">
-                <Badge
-                  rounded="full"
-                  px="2"
-                  fontSize="0.8em"
-                  colorScheme="red"
-                  onClick={() => handleDelete(cake.id)}
-                  cursor="pointer"
-                >
-                  Delete
-                </Badge>
-              </Box>
-              <Flex
-                mt="1"
-                direction="column"
-                justifyContent="space-between"
-                alignContent="center"
-              >
-                <Tooltip label={cake.description}>
-                  <Box
-                    fontSize="1xl"
-                    fontWeight="semibold"
-                    as="h4"
-                    lineHeight="tight"
-                    isTruncated
-                  >
-                    {cake.title}
-                  </Box>
-                </Tooltip>
-                <Tooltip label={cake.description}>
-                  <Text isTruncated>{cake.description}</Text>
-                </Tooltip>
-              </Flex>
-
-              <Flex justifyContent="space-between" alignContent="center">
-                Rating : {cake.rating}
-              </Flex>
-            </Box>
-          </Box>
-        ))}
-      </Flex>
-      <Center mb={20}>
-        <Button
-          display={
-            cakeList.current_page <= cakeList.total_page &&
-            cakeList.items.length > 0
-              ? "block"
-              : "none"
-          }
-          onClick={handleLoadMore}
+        <Select
+          placeholder="Select Breed"
+          w="200px"
+          onChange={handleChangeBreed}
+          mb={5}
         >
-          Load More
-        </Button>
+          {data.map((breed, key) => (
+            <option key={key} value={breed?.id}>
+              {breed?.name}
+            </option>
+          ))}
+        </Select>
       </Center>
-      <Modal isOpen={isOpen} onClose={onClose}>
-        <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Modal Title</ModalHeader>
-          <ModalCloseButton />
-          <ModalBody>
-            <Flex direction="column" rowGap={5}>
-              <Input placeholder="Title" />
-              <Textarea placeholder="Description" />
-              <NumberInput
-                placeholder="Rating"
-                defaultValue={15}
-                precision={2}
-                step={0.2}
+      {isLoading && (
+        <Center mt={5}>
+          <h3> Loading ...</h3>
+        </Center>
+      )}
+      {dataCats.length > 0 && (
+        <InfiniteScroll
+          dataLength={dataCats.length}
+          next={getMoreCats}
+          hasMore={data.length >= 10 && page < 12}
+          loader={
+            <Center mt={5}>
+              <h3> Loading ...</h3>
+            </Center>
+          }
+        >
+          <Box
+            style={{
+              columns: "4 280px",
+              columnGap: "1rem",
+            }}
+          >
+            {dataCats.map((data) => (
+              <Box
+                key={data.id}
+                maxW="sm"
+                borderWidth="1px"
+                rounded="lg"
+                shadow="lg"
+                position="relative"
+                margin="0 0 1rem"
               >
-                <NumberInputField />
-              </NumberInput>
-              <Button onClick={handleSave}>Save</Button>
-            </Flex>
-          </ModalBody>
-        </ModalContent>
-      </Modal>
+                <Image
+                  src={data.url}
+                  alt={`Picture of cat`}
+                  rounded="lg"
+                  width="100%"
+                  objectFit="cover"
+                />
+              </Box>
+            ))}
+          </Box>
+        </InfiniteScroll>
+      )}
     </LayoutComponent>
   );
 };
